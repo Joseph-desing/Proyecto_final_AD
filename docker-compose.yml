@@ -1,26 +1,53 @@
 version: "3.9"
 
 services:
-  app1:
-    build: ./app
-    container_name: app1
-
-  app2:
-    build: ./app
-    container_name: app2
-
-  app3:
-    build: ./app
-    container_name: app3
-
-  nginx:
-    image: nginx:latest
-    container_name: nginx
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: salas
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: abc123
     ports:
-      - "8080:80"
+      - "3308:3306"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app_network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+    ports:
+      - "8081:80"
     depends_on:
-      - app1
-      - app2
-      - app3
+      - db
+    networks:
+      - app_network
+
+  app:
+    build: ./app
+    container_name: app_salas
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: salas
+      DB_USER: admin
+      DB_PASSWORD: abc123
+    depends_on:
+      - db
+    networks:
+      - app_network
+    ports:
+      - "5000:5000"
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
