@@ -30,3 +30,43 @@ def createSala():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Ruta para obtener una sala por código
+@sala_bp.route('/codigo/<codigo>', methods=['GET'])
+def getSalaByCode(codigo):
+    try:
+        sala = SalaModel.getSalaByCode(codigo)
+        if sala is None:
+            return jsonify({'error': 'Sala no encontrada'}), 404
+        
+        return jsonify({
+            'id': sala[0],
+            'nombre': sala[1],
+            'codigo': sala[2],
+            'capacidad': sala[3],
+            'userid': sala[4]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Ruta para obtener todas las salas
+@sala_bp.route('/all', methods=['GET'])
+def getAllSalas():
+    try:
+        salas = SalaModel.getAllSalas()
+        if salas is None or len(salas) == 0:
+            return jsonify({'message': 'No hay salas disponibles', 'salas': []}), 200
+        
+        salas_list = []
+        for sala in salas:
+            salas_list.append({
+                'id': sala[0],
+                'nombre': sala[1],
+                'codigo': sala[2],
+                'capacidad': sala[3],
+                'userid': sala[4]
+            })
+        
+        return jsonify({'salas': salas_list}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

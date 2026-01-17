@@ -29,3 +29,36 @@ class SalaModel:
             return isSalaExist is not None
         except Exception as e:
             return False
+    {
+      "nombre": "Sala de Reuniones",
+      "codigo": "SALA001",
+      "capacidad": 10,
+      "userid": 1
+    }    
+    @staticmethod
+    def getSalaByCode(codigo):
+        try:
+            from app import get_db
+            connection = get_db()
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM salas WHERE codigo = %s", (codigo,))
+            sala = cursor.fetchone()
+            cursor.close()
+            connection.close()
+            return sala
+        except Exception as e:
+            return None
+    
+    @staticmethod
+    def getAllSalas():
+        try:
+            from app import get_db
+            connection = get_db()
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM salas")
+            salas = cursor.fetchall()
+            cursor.close()
+            connection.close()
+            return salas
+        except Exception as e:
+            return None
