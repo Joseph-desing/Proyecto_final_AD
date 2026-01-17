@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Sistema de Salas{% endblock %}
+
+{% block navbar %}
+<nav class="navbar">
+    <div class="container">
+        <a href="/dashboard" class="navbar-brand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            Gestión de Salas
+        </a>
+        
+        <div class="user-info">
+            <span id="userName">Usuario</span>
+            <div class="user-avatar" id="userAvatar">U</div>
+            <a href="#" id="logoutBtn" class="btn btn-secondary btn-sm">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                Salir
+            </a>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Header del Dashboard -->
+    <div class="dashboard-header">
+        <div>
+            <h1 class="dashboard-title">Panel de Control</h1>
+            <p class="dashboard-subtitle">Gestiona tus salas de manera fácil y rápida</p>
+        </div>
+        <div class="dashboard-actions">
+            <button class="btn btn-secondary" onclick="openSearchModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+                Buscar Sala
+            </button>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Nueva Sala
+            </button>
+        </div>
+    </div>
+    
+    <!-- Alertas del Dashboard -->
+    <div id="dashboardAlerts"></div>
+    
+    <!-- Contenedor de Salas -->
+    <div id="salasContainer">
+        <!-- Las salas se cargarán aquí dinámicamente -->
+    </div>
+</div>
+
+<!-- Modal Buscar Sala -->
+<div class="modal-overlay" id="searchSalaModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Buscar Sala</h2>
+            <button class="modal-close" onclick="closeSearchModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-instruction">Ingresa el código único de la sala que deseas buscar. El código fue asignado al momento de crear la sala.</p>
+            
+            <!-- Alerta dentro del modal de búsqueda -->
+            <div id="searchModalAlert"></div>
+            
+            <div class="form-group">
+                <label for="searchCode" class="form-label">Código de la sala</label>
+                <input 
+                    type="text" 
+                    id="searchCode" 
+                    class="form-input" 
+                    placeholder="Ej: SALA001"
+                >
+            </div>
+            
+            <!-- Resultado de búsqueda dentro del modal -->
+            <div id="searchResult" class="hidden"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeSearchModal()">
+                Cerrar
+            </button>
+            <button type="button" id="searchBtn" class="btn btn-primary" onclick="searchSalaByCode()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+                Buscar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear Sala -->
+<div class="modal-overlay" id="createSalaModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Nueva Sala</h2>
+            <button class="modal-close" onclick="closeCreateModal()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <form id="salaForm">
+            <div class="modal-body">
+                <p class="modal-instruction">Completa los datos para registrar una nueva sala. El código debe ser único y servirá para identificar la sala.</p>
+                
+                <!-- Alerta dentro del modal de crear -->
+                <div id="createModalAlert"></div>
+                
+                <div class="form-group">
+                    <label for="salaName" class="form-label">Nombre de la sala</label>
+                    <input 
+                        type="text" 
+                        id="salaName" 
+                        class="form-input" 
+                        placeholder="Ej: Sala de Reuniones A"
+                        required
+                    >
+                    <p class="form-error"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="salaCodigo" class="form-label">Código único</label>
+                    <input 
+                        type="text" 
+                        id="salaCodigo" 
+                        class="form-input" 
+                        placeholder="Ej: SALA001"
+                        data-validate="codigo"
+                        required
+                    >
+                    <p class="form-error"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="salaCapacidad" class="form-label">Capacidad (personas)</label>
+                    <input 
+                        type="number" 
+                        id="salaCapacidad" 
+                        class="form-input" 
+                        placeholder="Ej: 10"
+                        min="1"
+                        data-validate="capacidad"
+                        required
+                    >
+                    <p class="form-error"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">
+                    Cancelar
+                </button>
+                <button type="submit" id="createSalaBtn" class="btn btn-primary">
+                    Crear Sala
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/salas.js') }}"></script>
+{% endblock %}
