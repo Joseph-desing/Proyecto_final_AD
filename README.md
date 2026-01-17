@@ -18,6 +18,12 @@ La API cuenta con los siguientes endpoints principales:
 | `POST` | `/auth/login`    | Iniciar sesión             | `{"email": "...", "password": "..."}`                    |
 | `POST` | `/auth/logout`   | Cerrar sesión actual       | _Vacio_                                                  |
 
+### Salas (`/sala`)
+
+| Método | Endpoint       | Descripción      | Body (JSON)                                                                         |
+| :----- | :------------- | :--------------- | :---------------------------------------------------------------------------------- |
+| `POST` | `/sala/create` | Crear nueva sala | `{"nombre": "...", "codigo": "...", "capacidad": 10, "disponible": 1, "userid": 1}` |
+
 ### General
 
 | Método | Endpoint | Descripción                                  |

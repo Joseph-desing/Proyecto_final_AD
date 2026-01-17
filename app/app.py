@@ -27,7 +27,10 @@ def get_db():
 
 # Registrar blueprints
 from routes.auth_routes import auth_bp
+from routes.sala_routes import sala_bp
 app.register_blueprint(auth_bp)
+app.register_blueprint(sala_bp)
+
 
 # Ruta principal
 @app.route('/', methods=['GET'])
@@ -36,13 +39,16 @@ def formulario():
         'status': 'online',
         'message': 'Servicio de gestión de salas activo',
         'endpoints': {
-            'register': '/auth/register',
-            'login': '/auth/login',
-            'logout': '/auth/logout',
-            'me': '/auth/me'
+            'auth': {
+                'register': '/auth/register',
+                'login': '/auth/login',
+                'logout': '/auth/logout'
+            },
+            'sala': {
+                'create': '/sala/create'
+            }
         }
     })
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
-

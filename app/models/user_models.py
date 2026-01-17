@@ -1,6 +1,5 @@
 from werkzeug.security import generate_password_hash, check_password_hash
 
-
 class UserModel:
     # Crear nuevo usuario
     @staticmethod
@@ -82,3 +81,21 @@ class UserModel:
             return True
         except Exception as e:
             return False
+    
+    # Verificar usuario por id
+    @staticmethod
+    def verifyUserById(userid):
+        try:
+            from app import get_db
+            connection = get_db()
+            cursor = connection.cursor()
+            cursor.execute(
+                "SELECT * FROM usuarios WHERE userid = %s",
+                (userid,)
+            )
+            user = cursor.fetchone()
+            cursor.close()
+            connection.close()
+            return user
+        except Exception as e:
+            return None
