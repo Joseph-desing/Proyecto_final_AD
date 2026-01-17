@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session
 import pymysql
 import config
 import os
@@ -32,9 +32,36 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(sala_bp)
 
 
-# Ruta principal
+# =============================================
+# Rutas de Páginas (Frontend)
+# =============================================
+
+# Ruta principal - Redirige según estado de autenticación
 @app.route('/', methods=['GET'])
-def formulario():
+def index():
+    return redirect(url_for('login_page'))
+
+# Página de Login
+@app.route('/login', methods=['GET'])
+def login_page():
+    return render_template('login.html')
+
+# Página de Registro
+@app.route('/register', methods=['GET'])
+def register_page():
+    return render_template('register.html')
+
+# Página del Dashboard
+@app.route('/dashboard', methods=['GET'])
+def dashboard_page():
+    return render_template('dashboard.html')
+
+# =============================================
+# API de Estado (Health Check)
+# =============================================
+
+@app.route('/api/status', methods=['GET'])
+def api_status():
     return jsonify({
         'status': 'online',
         'message': 'Servicio de gestión de salas activo',
@@ -45,7 +72,9 @@ def formulario():
                 'logout': '/auth/logout'
             },
             'sala': {
-                'create': '/sala/create'
+                'create': '/sala/create',
+                'getByCode': '/sala/codigo/<codigo>',
+                'getAll': '/sala/all'
             }
         }
     })
