@@ -29,12 +29,7 @@ class SalaModel:
             return isSalaExist is not None
         except Exception as e:
             return False
-    {
-      "nombre": "Sala de Reuniones",
-      "codigo": "SALA001",
-      "capacidad": 10,
-      "userid": 1
-    }    
+    
     @staticmethod
     def getSalaByCode(codigo):
         try:
