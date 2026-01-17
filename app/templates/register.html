@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Registrarse - Sistema de Salas{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                </svg>
+            </div>
+            <h1 class="auth-title">Crear Cuenta</h1>
+            <p class="auth-subtitle">Regístrate para empezar a gestionar salas</p>
+        </div>
+        
+        <!-- Contenedor de alertas -->
+        <div id="alertContainer"></div>
+        
+        <form id="registerForm" novalidate>
+            <div class="form-group">
+                <label for="username" class="form-label">Nombre de usuario</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    name="username" 
+                    class="form-input" 
+                    placeholder="Tu nombre de usuario"
+                    data-validate="username"
+                    required
+                >
+                <p class="form-error"></p>
+            </div>
+            
+            <div class="form-group">
+                <label for="email" class="form-label">Correo electrónico</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    class="form-input" 
+                    placeholder="tu@email.com"
+                    data-validate="email"
+                    required
+                >
+                <p class="form-error"></p>
+            </div>
+            
+            <div class="form-group">
+                <label for="password" class="form-label">Contraseña</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="Mínimo 6 caracteres"
+                    data-validate="password"
+                    required
+                >
+                <p class="form-error"></p>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword" class="form-label">Confirmar contraseña</label>
+                <input 
+                    type="password" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    class="form-input" 
+                    placeholder="Repite tu contraseña"
+                    data-validate="confirmPassword"
+                    required
+                >
+                <p class="form-error"></p>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                Crear Cuenta
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>¿Ya tienes una cuenta? <a href="/login">Inicia sesión</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
