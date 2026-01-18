@@ -605,6 +605,7 @@ a:hover {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary);
+    text-transform: uppercase;
 }
 
 .sala-code {
@@ -615,6 +616,7 @@ a:hover {
     color: var(--primary);
     border-radius: var(--radius-sm);
     font-weight: 600;
+    text-transform: uppercase;
 }
 
 .sala-info {
@@ -696,6 +698,15 @@ a:hover {
     transform: scale(0.9) translateY(20px);
     transition: all var(--transition-normal);
     box-shadow: var(--shadow-lg);
+    
+    /* Ocultar scrollbar visualmente */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE y Edge */
+}
+
+/* Chrome, Safari y Opera */
+.modal::-webkit-scrollbar {
+    display: none;
 }
 
 .modal-overlay.active .modal {
