@@ -22,7 +22,7 @@ class SalaModel:
             from app import get_db
             connection = get_db()
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM salas WHERE codigo = %s", (codigo,))
+            cursor.execute("SELECT * FROM salas WHERE LOWER(codigo) = LOWER(%s)", (codigo,))
             isSalaExist = cursor.fetchone()
             cursor.close()
             connection.close()
@@ -36,7 +36,7 @@ class SalaModel:
             from app import get_db
             connection = get_db()
             cursor = connection.cursor()
-            cursor.execute("SELECT * FROM salas WHERE codigo = %s", (codigo,))
+            cursor.execute("SELECT * FROM salas WHERE LOWER(codigo) = LOWER(%s)", (codigo,))
             sala = cursor.fetchone()
             cursor.close()
             connection.close()
