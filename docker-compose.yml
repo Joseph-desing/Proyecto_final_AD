@@ -1,9 +1,9 @@
 version: "3.9"
 
 services:
-  db:
+  db1:
     image: mysql:8.0
-    container_name: mysql_db
+    container_name: mysql_db_1
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: salas
@@ -12,41 +12,145 @@ services:
     ports:
       - "3308:3306"
     volumes:
-      - ./data/mysql:/var/lib/mysql
+      - ./data/mysql/db1:/var/lib/mysql
       - ./sql:/docker-entrypoint-initdb.d
     networks:
       - app_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
 
-  phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: phpmyadmin
+  db2:
+    image: mysql:8.0
+    container_name: mysql_db_2
     environment:
-      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: salas
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: abc123
+    ports:
+      - "3309:3306"
+    volumes:
+      - ./data/mysql/db2:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  db3:
+    image: mysql:8.0
+    container_name: mysql_db_3
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: salas
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: abc123
+    ports:
+      - "3310:3306"
+    volumes:
+      - ./data/mysql/db3:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  phpmyadmin_nodo1:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin_nodo1_salas
+    environment:
+      PMA_HOST: db1
       PMA_PORT: 3306
     ports:
       - "8081:80"
     depends_on:
-      - db
+      - db1
     networks:
       - app_network
 
-  app:
-    build: ./app
-    container_name: app_salas
+  phpmyadmin_nodo2:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin_nodo2_salas
     environment:
-      DB_HOST: db
+      PMA_HOST: db2
+      PMA_PORT: 3306
+    ports:
+      - "8082:80"
+    depends_on:
+      - db2
+    networks:
+      - app_network
+
+  phpmyadmin_nodo3:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin_nodo3_salas
+    environment:
+      PMA_HOST: db3
+      PMA_PORT: 3306
+    ports:
+      - "8083:80"
+    depends_on:
+      - db3
+    networks:
+      - app_network
+
+  app1:
+    build: ./app
+    container_name: app_salas_1
+    environment:
+      DB_HOST: db1
       DB_PORT: 3306
       DB_NAME: salas
       DB_USER: admin
       DB_PASSWORD: abc123
     depends_on:
-      - db
+      db1:
+        condition: service_healthy
     networks:
       - app_network
     ports:
       - "5000:5000"
 
+  app2:
+    build: ./app
+    container_name: app_salas_2
+    environment:
+      DB_HOST: db2
+      DB_PORT: 3306
+      DB_NAME: salas
+      DB_USER: admin
+      DB_PASSWORD: abc123
+    depends_on:
+      db2:
+        condition: service_healthy
+    networks:
+      - app_network
+    ports:
+      - "5001:5000"
+
+  app3:
+    build: ./app
+    container_name: app_salas_3
+    environment:
+      DB_HOST: db3
+      DB_PORT: 3306
+      DB_NAME: salas
+      DB_USER: admin
+      DB_PASSWORD: abc123
+    depends_on:
+      db3:
+        condition: service_healthy
+    networks:
+      - app_network
+    ports:
+      - "5002:5000"
+
 networks:
   app_network:
     driver: bridge
-
