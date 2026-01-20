@@ -2,7 +2,7 @@
 
 Aplicación web distribuida en Flask para la gestión de salas con arquitectura de 3 nodos independientes. Cada nodo tiene su propia base de datos MySQL, aplicación Flask y acceso a PhpMyAdmin.
 
-## 🏗️ Arquitectura
+##  Arquitectura
 
 El sistema está compuesto por **3 nodos completamente independientes**:
 - Cada nodo tiene su propia instancia de MySQL
@@ -10,7 +10,7 @@ El sistema está compuesto por **3 nodos completamente independientes**:
 - Cada nodo tiene su propio volumen de persistencia
 - Todas las bases de datos tienen el mismo esquema inicial
 
-## 📋 Estructura del Proyecto
+##  Estructura del Proyecto
 
 ```
 Proyecto_final_AD/
@@ -50,7 +50,7 @@ Proyecto_final_AD/
 └── docker-compose.yml
 ```
 
-## 🚀 Despliegue
+##  Despliegue
 
 ### Requisitos previos
 - Docker y Docker Compose instalados
@@ -78,7 +78,7 @@ docker-compose ps
 docker-compose down
 ```
 
-## 📍 Acceso a los Nodos
+##  Acceso a los Nodos
 
 ### NODO 1
 | Servicio | URL | Acceso |
@@ -101,7 +101,7 @@ docker-compose down
 | **PhpMyAdmin** | `http://localhost:8083` | Usuario: `admin` / Contraseña: `abc123` |
 | **MySQL** | `localhost:3310` | Usuario: `admin` / Contraseña: `abc123` |
 
-## 🔐 Credenciales (Iguales para todos los nodos)
+## Credenciales (Iguales para todos los nodos)
 
 ```
 Usuario MySQL: admin
@@ -111,7 +111,7 @@ Contraseña Root: root
 Base de datos: salas
 ```
 
-## 📊 Caracteristicas
+##  Caracteristicas
 
 - ✅ Sistema de autenticación (registro, login, logout)
 - ✅ Gestión de salas (crear, buscar, listar)
@@ -122,7 +122,7 @@ Base de datos: salas
 - ✅ Persistencia de datos con volúmenes Docker
 - ✅ Health checks en bases de datos
 
-## 📄 Rutas de la Aplicación
+##  Rutas de la Aplicación
 
 ### Páginas del Frontend
 
@@ -184,7 +184,7 @@ docker-compose ps
 docker volume ls | findstr proyecto
 ```
 
-## 📁 Volúmenes persistentes
+##  Volúmenes persistentes
 
 Cada nodo usa un volumen separado en `./data/mysql/`:
 
@@ -194,25 +194,9 @@ Cada nodo usa un volumen separado en `./data/mysql/`:
 
 Los datos persisten incluso después de detener los contenedores.
 
-## 🔍 Solución de problemas
 
-### Problema: Puerto ya está en uso
-```bash
-# Limpiar contenedores huérfanos
-docker-compose down --remove-orphans -v
-```
 
-### Problema: Contenedores no inician
-```bash
-# Ver logs detallados
-docker-compose logs
-
-# Reiniciar todo
-docker-compose down --remove-orphans
-docker-compose up -d --build
-```
-
-## 📝 Estructura de la Base de Datos
+##  Estructura de la Base de Datos
 
 ### Tabla: usuarios
 ```sql
@@ -238,7 +222,7 @@ CREATE TABLE salas (
 );
 ```
 
-## ⚙️ Configuración de Docker Compose
+##  Configuración de Docker Compose
 
 El archivo `docker-compose.yml` define:
 - 3 servicios MySQL con health checks
