@@ -14,8 +14,8 @@ El sistema está compuesto por **3 nodos completamente independientes**:
 
 ```
 Proyecto_final_AD/
-├── docker-compose.yml          # Configuración de 3 nodos
-├── README.md                   # Este archivo
+├── docker-compose.yml          
+├── README.md                   
 ├── app/
 │   ├── Dockerfile
 │   ├── requirements.txt
