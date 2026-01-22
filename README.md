@@ -294,3 +294,97 @@ Las tablas se crean automáticamente al iniciar el contenedor de MySQL. El scrip
 - `userid` - ID del usuario creador (FK)
 - `created_at` - Fecha de creación
 
+### REPLICACION DE DATOS
+En este proyecto se implementó un esquema de replicación Master–Slave utilizando MySQL 8 y Docker Compose, donde:
+db1 actúa como Nodo Maestro
+db2 y db3 actúan como Nodos Réplica (Slaves)
+El objetivo es garantizar la replicación automática de datos desde el nodo maestro hacia los nodos esclavos.
+
+### Nodo Maestro (db1)
+El nodo maestro se configuró con:
+
+Identificador único (server-id)
+
+Registro de binlogs
+
+Replicación limitada a la base de datos salas
+
+## Creación del usuario de replicación (db1)
+Desde phpMyAdmin del Nodo 1, se creó un usuario exclusivo para la replicación:
+```sql
+CREATE USER 'repl'@'%' IDENTIFIED BY 'repl123';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+```
+Se utilizó un usuario dedicado (repl) como buena práctica de seguridad, evitando usar usuarios administrativos.
+
+## Obtención del estado del Maestro
+```sql
+SHOW MASTER STATUS;
+```
+Resultado obtenido:
+
+---File: mysql-bin.000003
+---Position: 157
+---Binlog_Do_DB: salas
+
+Estos valores fueron utilizados en la configuración de los nodos esclavos."Estos resulatdos pueden variar".
+
+## Nodos Esclavos (db2 y db3)
+
+Cada nodo esclavo tiene:
+
+Un server-id único
+Archivo de relay log
+
+## Configuración de replicación en db2 y db3
+```sql
+CHANGE MASTER TO
+  MASTER_HOST='db1',
+  MASTER_USER='repl',
+  MASTER_PASSWORD='repl123',
+  MASTER_PORT=3306,
+  MASTER_LOG_FILE='mysql-bin.000003',
+  MASTER_LOG_POS=157;
+```
+## Inicializacion del slave 
+```sql
+START SLAVE;
+```
+## Verificación del estado de replicación
+```sql
+SHOW SLAVE STATUS
+```
+## Resultado esperado:
+
+Slave_IO_Running: Yes
+Slave_SQL_Running: Yes
+Slave_IO_State: Waiting for source to send event
+
+## Prueba desde el Nodo Maestro (db1)
+````sql
+CREATE TABLE IF NOT EXISTS salas.replica_test (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  msg VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO salas.replica_test (msg)
+VALUES ('replicación master → slaves OK');
+
+````
+## Verificación en db2 y db3
+
+````sql
+SELECT * FROM salas.replica_test;
+````
+
+## Limpieza (opcional)
+
+Después de la prueba, la tabla puede eliminarse sin afectar el sistema:
+````sql
+DROP TABLE replica_test;
+```
+
+
+
