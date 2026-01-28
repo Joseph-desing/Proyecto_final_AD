@@ -2,3 +2,7 @@ venv/
 __pycache__/
 *.pyc
 .env
+# Permitir la carpeta data pero ignorar archivos de sistema de MySQL
+data/mysql/**/mysql.sock
+data/mysql/**/mysql-bin.index
+data/mysql/**/binlog.index

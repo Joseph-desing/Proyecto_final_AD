@@ -1,390 +1,261 @@
-# Proyecto Final - Aplicaciones Distribuidas (3 Nodos)
+# Sistema de Gestión de Salas - Arquitectura Distribuida (3 Nodos)
 
-Aplicación web distribuida en Flask para la gestión de salas con arquitectura de 3 nodos independientes. Cada nodo tiene su propia base de datos MySQL, aplicación Flask y acceso a PhpMyAdmin.
+Esta es una aplicación web de alta disponibilidad desarrollada con Flask, orquestada mediante Docker Compose y balanceada con Nginx. Implementa una arquitectura distribuida con replicación de base de datos Master-Slave (1 Maestro y 2 Esclavos).
 
-##  Arquitectura
+**Índice**
 
-El sistema está compuesto por **3 nodos completamente independientes**:
-- Cada nodo tiene su propia instancia de MySQL
-- Cada nodo ejecuta su propia aplicación Flask
-- Cada nodo tiene su propio volumen de persistencia
-- Todas las bases de datos tienen el mismo esquema inicial
+1. [Arquitectura del Sistema](#arquitectura-del-sistema)
+2. [Estructura del Proyecto](#estructura-del-proyecto)
+3. [Despliegue y Ejecución](#despliegue-y-ejecución)
+4. [Estrategia de Balanceo de Carga](#estrategia-de-balanceo-de-carga)
+5. [Acceso a los Nodos y Servicios](#acceso-a-los-nodos-y-servicios)
+6. [Configuración de Replicación MySQL](#configuración-de-replicación-mysql)
+7. [Esquema de Base de Datos](#esquema-de-base-de-datos)
+8. [Rutas de la Aplicación](#rutas-de-la-aplicación)
+9. [Seguridad y Configuración](#seguridad-y-configuración)
+10. [Monitoreo y Salud](#monitoreo-y-salud)
+11. [Pruebas de Balanceo](#pruebas-de-balanceo)
+12. [Guía de Desarrollo](#guía-de-desarrollo)
+13. [Solución de Problemas](#solución-de-problemas)
+14. [Comandos Útiles de Mantenimiento](#comandos-útiles-de-mantenimiento)
 
-##  Estructura del Proyecto
+---
 
+## Arquitectura del Sistema
+
+El sistema implementa un modelo de **N capas distribuido** diseñado para escalabilidad y tolerancia a fallos.
+
+```mermaid
+graph TD
+    User((Usuario)) --> Nginx[Balanceador Nginx]
+    subgraph "Capa de Aplicación (Flask)"
+        Nginx --> App1[Nodo 1]
+        Nginx --> App2[Nodo 2]
+        Nginx --> App3[Nodo 3]
+    end
+    subgraph "Capa de Datos (MySQL)"
+        App1 --> DB1[(Maestro db1)]
+        App2 --> DB2[(Esclavo db2)]
+        App3 --> DB3[(Esclavo db3)]
+        DB1 -.->|Replicación| DB2
+        DB1 -.->|Replicación| DB3
+    end
 ```
+
+### Stack Tecnológico
+
+- **Frontend:** HTML5, CSS3 (Vanilla), JavaScript, Jinja2.
+- **Backend:** Flask (Python 3.9), PyMySQL.
+- **Infraestructura:** Docker, Docker Compose, Nginx.
+- **Base de Datos:** MySQL 8.0.
+
+---
+
+## Estructura del Proyecto
+
+```plaintext
 Proyecto_final_AD/
-├── docker-compose.yml          
-├── README.md                   
-├── app/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── app.py
-│   ├── config.py
-│   ├── models/
-│   │   ├── user_models.py
-│   │   └── sala_models.py
-│   ├── routes/
-│   │   ├── auth_routes.py
-│   │   └── sala_routes.py
-│   ├── templates/
-│   │   ├── base.html
-│   │   ├── login.html
-│   │   ├── register.html
-│   │   └── dashboard.html
-│   └── static/
-│       ├── css/styles.css
-│       └── js/
-│           ├── auth.js
-│           ├── salas.js
-│           └── validation.js
-├── sql/
-│   └── init.sql                # Script de inicialización de BD
-├── data/
-│   └── mysql/
-│       ├── db1/                # Volumen persistente Nodo 1
-│       ├── db2/                # Volumen persistente Nodo 2
-│       └── db3/                # Volumen persistente Nodo 3
-├── nginx/
-│   └── nginx.conf
-└── docker-compose.yml
+├── app/                  # Microservicio Flask
+│   ├── models/           # Definición de tablas y lógica de datos
+│   ├── routes/           # Endpoints de autenticación y salas
+│   ├── static/           # Archivos CSS y JS
+│   └── templates/        # Vistas HTML (Jinja2)
+├── nginx/                # Configuración del Proxy Inverso
+├── sql/                  # Scripts de inicialización de BD
+├── data/mysql/           # Persistencia de datos (Volúmenes)
+├── test_balances.py      # Script de pruebas de carga
+└── docker-compose.yml    # Orquestador de contenedores
 ```
 
-##  Despliegue
+---
 
-### Requisitos previos
-- Docker y Docker Compose instalados
-- Puerto 5000-5002, 3308-3310, 8081-8083 disponibles
+## Despliegue y Ejecución
 
-### Iniciar servicios
+### Requisitos
+
+- Docker y Docker Compose (V2 recomendado).
+
+### Inicio Rápido
 
 ```bash
-# Ir al directorio del proyecto
-cd Proyecto_final_AD
+# 1. Limpiar entornos previos y levantar contenedores
+docker-compose down -v --remove-orphans
+docker-compose up -d --build
 
-# Eliminar contenedores anteriores (si existen)
-docker-compose down --remove-orphans -v
-
-# Iniciar los 3 nodos
-docker-compose up -d
-
-# Verificar estado
+# 2. Verificar que los 10 servicios estén activos
 docker-compose ps
 ```
 
-### Detener servicios
+---
 
-```bash
-docker-compose down
+## Estrategia de Balanceo de Carga
+
+Nginx utiliza **Round Robin con Pesos** para optimizar la carga según la capacidad de los nodos:
+
+| Nodo      | Peso | Tráfico Estimado |
+| :-------- | :--- | :--------------- |
+| **App 1** | `3`  | 50%              |
+| **App 2** | `2`  | 33%              |
+| **App 3** | `1`  | 17%              |
+
+```mermaid
+sequenceDiagram
+    participant U as Usuario
+    participant N as Nginx
+    participant A1 as App 1 (W:3)
+    participant A2 as App 2 (W:2)
+    participant A3 as App 3 (W:1)
+
+    U->>N: Petición 1
+    N->>A1: Forward
+    U->>N: Petición 2
+    N->>A1: Forward
+    U->>N: Petición 3
+    N->>A1: Forward
+    U->>N: Petición 4
+    N->>A2: Forward
 ```
 
-##  Acceso a los Nodos
+---
 
-### NODO 1
-| Servicio | URL | Acceso |
-|----------|-----|--------|
-| **Aplicación** | `http://localhost:5000` | - |
-| **PhpMyAdmin** | `http://localhost:8081` | Usuario: `admin` / Contraseña: `abc123` |
-| **MySQL** | `localhost:3308` | Usuario: `admin` / Contraseña: `abc123` |
+## Acceso a los Nodos y Servicios
 
-### NODO 2
-| Servicio | URL | Acceso |
-|----------|-----|--------|
-| **Aplicación** | `http://localhost:5001` | - |
-| **PhpMyAdmin** | `http://localhost:8082` | Usuario: `admin` / Contraseña: `abc123` |
-| **MySQL** | `localhost:3309` | Usuario: `admin` / Contraseña: `abc123` |
+| Nodo            | Servicio         | URL Externa                                    | Acceso DB (Interno) |
+| :-------------- | :--------------- | :--------------------------------------------- | :------------------ |
+| **Balanceador** | Punto de Entrada | [http://localhost:8084](http://localhost:8084) | -                   |
+| **Nodo 1**      | Maestro (db1)    | [http://localhost:5000](http://localhost:5000) | Port: 3308          |
+| **Nodo 2**      | Esclavo (db2)    | [http://localhost:5001](http://localhost:5001) | Port: 3309          |
+| **Nodo 3**      | Esclavo (db3)    | [http://localhost:5002](http://localhost:5002) | Port: 3310          |
 
-### NODO 3
-| Servicio | URL | Acceso |
-|----------|-----|--------|
-| **Aplicación** | `http://localhost:5002` | - |
-| **PhpMyAdmin** | `http://localhost:8083` | Usuario: `admin` / Contraseña: `abc123` |
-| **MySQL** | `localhost:3310` | Usuario: `admin` / Contraseña: `abc123` |
+---
 
-## Credenciales (Iguales para todos los nodos)
+## Configuración de Replicación MySQL
 
-```
-Usuario MySQL: admin
-Contraseña MySQL: abc123
-Usuario Root MySQL: root
-Contraseña Root: root
-Base de datos: salas
-```
+La replicación se basa en el registro de binlogs del maestro.
 
-##  Caracteristicas
+### 1. Obtención de Coordenadas (Maestro - db1)
 
-- ✅ Sistema de autenticación (registro, login, logout)
-- ✅ Gestión de salas (crear, buscar, listar)
-- ✅ Interfaz de usuario moderna y minimalista
-- ✅ Validación de formularios en tiempo real
-- ✅ Diseño responsive
-- ✅ 3 nodos independientes con BD separadas
-- ✅ Persistencia de datos con volúmenes Docker
-- ✅ Health checks en bases de datos
-
-##  Rutas de la Aplicación
-
-### Páginas del Frontend
-
-| Ruta | Descripción |
-|------|-------------|
-| `/` | Redirige a la página de login |
-| `/login` | Página de inicio de sesión |
-| `/register` | Página de registro de usuarios |
-| `/dashboard` | Panel principal con gestión de salas |
-
-### Endpoints de la API
-
-#### Autenticación (`/auth`)
-
-| Método | Endpoint         | Descripción                | Body (JSON)                                              |
-| :----- | :--------------- | :------------------------- | :------------------------------------------------------- |
-| `POST` | `/auth/register` | Registrar un nuevo usuario | `{"username": "...", "email": "...", "password": "..."}` |
-| `POST` | `/auth/login`    | Iniciar sesión             | `{"email": "...", "password": "..."}`                    |
-| `POST` | `/auth/logout`   | Cerrar sesión actual       | _Vacío_                                                  |
-
-#### Salas (`/sala`)
-
-| Método | Endpoint             | Descripción              | Body (JSON)                                                               |
-| :----- | :------------------- | :------------------------| :-------------------------------------------------------------------------|
-| `POST` | `/sala/create`       | Crear nueva sala         | `{"nombre": "...", "codigo": "...", "capacidad": "...", "userid": "..."}` |
-| `GET`  | `/sala/codigo/<codigo>` | Buscar sala por código | _Ninguno_                                                                 |
-| `GET`  | `/sala/all`          | Listar todas las salas   | _Ninguno_                                                                 |
-
-#### General
-
-| Método | Endpoint      | Descripción                                  |
-| :----- | :------------ | :------------------------------------------- |
-| `GET`  | `/api/status` | Verificar estado del servicio (Health Check) |
-
-## 🔧 Comandos útiles
-
-### Ver logs de un nodo
-```bash
-docker-compose logs app_salas_1   # Nodo 1
-docker-compose logs app_salas_2   # Nodo 2
-docker-compose logs app_salas_3   # Nodo 3
-```
-
-### Acceder a BD de un nodo
-```bash
-# Nodo 1
-docker exec mysql_db_1 mysql -u admin -pabc123 salas -e "SHOW TABLES;"
-
-# Nodo 2
-docker exec mysql_db_2 mysql -u admin -pabc123 salas -e "SHOW TABLES;"
-
-# Nodo 3
-docker exec mysql_db_3 mysql -u admin -pabc123 salas -e "SHOW TABLES;"
-```
-
-### Verificar volúmenes
-```bash
-docker-compose ps
-docker volume ls | findstr proyecto
-```
-
-##  Volúmenes persistentes
-
-Cada nodo usa un volumen separado en `./data/mysql/`:
-
-- **db1/** → Datos de Nodo 1
-- **db2/** → Datos de Nodo 2
-- **db3/** → Datos de Nodo 3
-
-Los datos persisten incluso después de detener los contenedores.
-
-
-
-##  Estructura de la Base de Datos
-
-### Tabla: usuarios
 ```sql
-CREATE TABLE usuarios (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  username VARCHAR(50) UNIQUE NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Tabla: salas
-```sql
-CREATE TABLE salas (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  nombre VARCHAR(100) NOT NULL,
-  codigo VARCHAR(50) UNIQUE NOT NULL,
-  capacidad INT NOT NULL,
-  userid INT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (userid) REFERENCES usuarios(id)
-);
-```
-
-##  Configuración de Docker Compose
-
-El archivo `docker-compose.yml` define:
-- 3 servicios MySQL con health checks
-- 3 aplicaciones Flask conectadas a su BD respectiva
-- 3 instancias de PhpMyAdmin
-- Red compartida para comunicación entre servicios
-- Volúmenes para persistencia de datos
-
-```
-proyecto/
-├── app/
-│   ├── static/
-│   │   ├── css/
-│   │   │   └── styles.css
-│   │   └── js/
-│   │       ├── auth.js
-│   │       ├── salas.js
-│   │       └── validation.js
-│   ├── templates/
-│   │   ├── base.html
-│   │   ├── login.html
-│   │   ├── register.html
-│   │   └── dashboard.html
-│   ├── models/
-│   │   ├── user_models.py
-│   │   └── sala_models.py
-│   ├── routes/
-│   │   ├── auth_routes.py
-│   │   └── sala_routes.py
-│   ├── app.py
-│   ├── config.py
-│   └── Dockerfile
-├── sql/
-│   └── init.sql
-├── nginx/
-│   └── nginx.conf
-├── docker-compose.yml
-└── README.md
-```
-
-## Ejecución
-
-Para levantar el proyecto, asegúrate de tener Docker instalado y ejecuta:
-
-```bash
-docker compose up --build
-```
-
-El sistema estará disponible en:
-- **Aplicación**: http://localhost:5000
-- **phpMyAdmin**: http://localhost:8081
-
-## Base de Datos
-
-Las tablas se crean automáticamente al iniciar el contenedor de MySQL. El script de inicialización se encuentra en `sql/init.sql`.
-
-### Tabla `usuarios`
-- `userid` - ID único (auto-incremento)
-- `username` - Nombre de usuario
-- `email` - Correo electrónico (único)
-- `password` - Contraseña hasheada
-- `created_at` - Fecha de creación
-
-### Tabla `salas`
-- `id` - ID único (auto-incremento)
-- `nombre` - Nombre de la sala
-- `codigo` - Código único de la sala
-- `capacidad` - Capacidad de personas
-- `userid` - ID del usuario creador (FK)
-- `created_at` - Fecha de creación
-
-### REPLICACION DE DATOS
-En este proyecto se implementó un esquema de replicación Master–Slave utilizando MySQL 8 y Docker Compose, donde:
-db1 actúa como Nodo Maestro
-db2 y db3 actúan como Nodos Réplica (Slaves)
-El objetivo es garantizar la replicación automática de datos desde el nodo maestro hacia los nodos esclavos.
-
-### Nodo Maestro (db1)
-El nodo maestro se configuró con:
-
-Identificador único (server-id)
-
-Registro de binlogs
-
-Replicación limitada a la base de datos salas
-
-## Creación del usuario de replicación (db1)
-Desde phpMyAdmin del Nodo 1, se creó un usuario exclusivo para la replicación:
-```sql
-CREATE USER 'repl'@'%' IDENTIFIED BY 'repl123';
-GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
-FLUSH PRIVILEGES;
-```
-Se utilizó un usuario dedicado (repl) como buena práctica de seguridad, evitando usar usuarios administrativos.
-
-## Obtención del estado del Maestro
-```sql
+-- Ejecutar en db1 (Master)
 SHOW MASTER STATUS;
 ```
-Resultado obtenido:
 
----File: mysql-bin.000003
----Position: 157
----Binlog_Do_DB: salas
+_Toma nota de **File** y **Position**._
 
-Estos valores fueron utilizados en la configuración de los nodos esclavos."Estos resulatdos pueden variar".
+### 2. Configuración de Esclavos (db2 y db3)
 
-## Nodos Esclavos (db2 y db3)
-
-Cada nodo esclavo tiene:
-
-Un server-id único
-Archivo de relay log
-
-## Configuración de replicación en db2 y db3
 ```sql
+-- Ejecutar en db2 y db3 (Slaves)
+STOP SLAVE;
 CHANGE MASTER TO
   MASTER_HOST='db1',
   MASTER_USER='repl',
   MASTER_PASSWORD='repl123',
-  MASTER_PORT=3306,
-  MASTER_LOG_FILE='mysql-bin.000003',
-  MASTER_LOG_POS=157;
-```
-## Inicializacion del slave 
-```sql
+  MASTER_LOG_FILE='mysql-bin.000003', -- Valor real
+  MASTER_LOG_POS=157;                -- Valor real
 START SLAVE;
 ```
-## Verificación del estado de replicación
-```sql
-SHOW SLAVE STATUS
+
+---
+
+## Esquema de Base de Datos
+
+El sistema utiliza dos tablas principales relacionadas:
+
+### Tabla `usuarios`
+
+| Campo      | Tipo     | Descripción                          |
+| :--------- | :------- | :----------------------------------- |
+| `id`       | INT (PK) | Identificador único autoincremental. |
+| `username` | VARCHAR  | Nombre de usuario único.             |
+| `email`    | VARCHAR  | Correo electrónico único.            |
+| `password` | VARCHAR  | Hash de la contraseña.               |
+
+### Tabla `salas`
+
+| Campo       | Tipo     | Descripción                     |
+| :---------- | :------- | :------------------------------ |
+| `id`        | INT (PK) | Identificador único de la sala. |
+| `nombre`    | VARCHAR  | Nombre descriptivo.             |
+| `codigo`    | VARCHAR  | Código único de acceso.         |
+| `capacidad` | INT      | Aforo máximo.                   |
+| `userid`    | INT (FK) | ID del usuario creador.         |
+
+---
+
+## Rutas de la Aplicación
+
+### Frontend
+
+- `/login`: Autenticación de usuarios.
+- `/register`: Creación de cuentas.
+- `/dashboard`: Panel de control principal.
+
+### API REST
+
+- `POST /auth/login`: Inicia sesión.
+- `POST /sala/create`: Crea una sala (Escritura en Maestro).
+- `GET /sala/all`: Obtiene todas las salas (Lectura desde el nodo actual).
+
+---
+
+## Seguridad y Configuración
+
+- **Sesiones:** Manejadas mediante cookies firmadas con `SECRET_KEY`.
+- **Contraseñas:** Almacenadas con hashing (Werkzeug/Bcrypt).
+- **Aislamiento:** Red Docker interna `app_network` para evitar exposición directa de las bases de datos.
+
+---
+
+## Monitoreo y Salud
+
+Puedes verificar el estado de cualquier nodo mediante:
+`GET http://localhost:8084/api/status`
+
+---
+
+## Pruebas de Balanceo
+
+Se incluye un script `test_balances.py` para verificar la distribución de carga:
+
+```bash
+python test_balances.py
 ```
-## Resultado esperado:
 
-Slave_IO_Running: Yes
-Slave_SQL_Running: Yes
-Slave_IO_State: Waiting for source to send event
+**Resultado esperado:** Una distribución cercana al 50% para el Nodo 1, 33% para el Nodo 2 y 17% para el Nodo 3.
 
-## Prueba desde el Nodo Maestro (db1)
-````sql
-CREATE TABLE IF NOT EXISTS salas.replica_test (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  msg VARCHAR(100),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+---
 
-INSERT INTO salas.replica_test (msg)
-VALUES ('replicación master → slaves OK');
+## Guía de Desarrollo
 
-````
-## Verificación en db2 y db3
+### Agregar un nuevo Modelo
 
-````sql
-SELECT * FROM salas.replica_test;
-````
+1. Crea el archivo en `app/models/`.
+2. Define la clase y los métodos de interacción con `get_db()`.
+3. Importa y usa el modelo en las rutas correspondientes.
 
-## Limpieza (opcional)
+### Modificar el Balanceo
 
-Después de la prueba, la tabla puede eliminarse sin afectar el sistema:
-````sql
-DROP TABLE replica_test;
+Edita `nginx/nginx.conf` y ajusta los valores de `weight` en el bloque `upstream`.
+
+---
+
+## Solución de Problemas
+
+- **Contenedores no inician:** Asegúrate de que los puertos 8084, 5000-5002 y 3308-3310 estén libres.
+- **Fallo de Replicación:** Verifica que el `MASTER_LOG_POS` sea el correcto ejecutando `SHOW MASTER STATUS` en db1.
+- **Error de Conexión DB:** Revisa que las variables de entorno en `docker-compose.yml` coincidan con las credenciales de MySQL.
+
+---
+
+## Comandos Útiles de Mantenimiento
+
+```bash
+docker-compose logs -f nginx   # Ver logs del balanceador
+docker-compose restart app1    # Reiniciar un nodo específico
+docker-compose exec db1 mysql -u admin -pabc123  # Entrar a la consola MySQL
 ```
 
+---
 
-
+_Desarrollado para el Proyecto Final de Aplicaciones Distribuidas - Escuela Politécnica Nacional._
